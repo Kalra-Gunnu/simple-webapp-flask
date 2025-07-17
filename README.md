@@ -1,193 +1,241 @@
 
 # Flask CI/CD Pipeline with GitHub Actions & AWS EC2  
 
-This project demonstrates a **CI/CD pipeline** for a simple Flask application using **GitHub Actions** and deploying to **AWS EC2 instances** (Staging & Production).  
+A **fully automated CI/CD pipeline** for a Flask application using **GitHub Actions**, Docker, and AWS EC2 for **Staging** and **Production** deployments.
 
 ---
 
-## 🚀 Workflow Overview  
+## 📚 Table of Contents  
 
-- **GitHub Actions** automates build, test, and deployment.  
-- **Two EC2 instances**:  
-  - `Staging` → triggered on `staging` branch pushes  
-  - `Production` → triggered on GitHub Release (`master` branch)  
-- **Docker** used for containerized deployment.  
-- **GitHub Secrets** securely store SSH keys and server details.  
+1. [Overview](#overview)  
+2. [Architecture](#architecture)  
+3. [Workflow Summary](#workflow-summary)  
+4. [Step-by-Step Setup](#step-by-step-setup)  
+   - [1. Fork the Repository](#1-fork-the-repository)  
+   - [2. Create a Staging Branch](#2-create-a-staging-branch)  
+   - [3. Add Basic Tests](#3-add-basic-tests)  
+   - [4. Create GitHub Actions Workflow](#4-create-github-actions-workflow)  
+   - [5. Disable Actions Temporarily](#5-disable-actions-temporarily)  
+   - [6. Launch AWS EC2 Instances](#6-launch-aws-ec2-instances)  
+   - [7. Configure GitHub Secrets](#7-configure-github-secrets)  
+   - [8. Clone Repo Locally & Switch Branch](#8-clone-repo-locally--switch-branch)  
+   - [9. Update Application for Environment Awareness](#9-update-application-for-environment-awareness)  
+   - [10. Update Dockerfile](#10-update-dockerfile)  
+   - [11. Update CI/CD Workflow](#11-update-cicd-workflow)  
+   - [12. Push Changes to Staging](#12-push-changes-to-staging)  
+   - [13. First Workflow Run](#13-first-workflow-run)  
+   - [14. Fix Deployment Issue](#14-fix-deployment-issue)  
+   - [15. Successful Staging Deployment](#15-successful-staging-deployment)  
+   - [16. Deploy Production](#16-deploy-production)  
+   - [17. Verify Production](#17-verify-production)  
+5. [Secrets Required](#secrets-required)  
+6. [Pipeline Trigger Rules](#pipeline-trigger-rules)  
+7. [Final Status](#final-status)  
+8. [Summary](#summary)  
+
+---
+
+## 🔎 Overview  
+
+This pipeline automates the **build, test, and deployment** of a Flask app:  
+
+✅ **Push to Staging branch** → Deploys to Staging EC2  
+✅ **GitHub Release** → Deploys to Production EC2  
+✅ **Dockerized Application** → Same build runs across both environments  
+✅ **Secure Secrets** → Stored in GitHub Actions Secrets  
+
+---
+
+## 🏗 Architecture  
+
+```
+Developer Push → GitHub Actions → Docker Build & Test → Deploy via SSH → EC2 Container
+```
+
+- **GitHub Repo** → Source Code & Workflow  
+- **GitHub Actions** → CI/CD Orchestration  
+- **Docker** → App Packaging  
+- **AWS EC2** → Hosting for Staging & Production  
+
+---
+
+## 🔄 Workflow Summary  
+
+- **staging branch push** → Triggers Staging Build & Deploy  
+- **release tag** → Triggers Production Build & Deploy  
+- Test cases ensure stability before deployment  
+- Environment variables differentiate Staging vs Production  
 
 ---
 
 ## ✅ Step-by-Step Setup  
 
-### 1️⃣ Fork the Repository  
-- **Fork the repo** to your GitHub account  
-- Repo forked successfully  
+### 1. Fork the Repository  
+Fork the [original repo](https://github.com/mmumshad/simple-webapp-flask) into your GitHub account.  
 
-![Screenshot 1](screenshots/1.png)  
-![Screenshot 2](screenshots/2.png)  
-
----
-
-### 2️⃣ Create a Staging Branch  
-- Created a new branch `staging` (default branch is `master`)  
-
-![Screenshot 3](screenshots/3.png)  
-![Screenshot 4](screenshots/4.png)  
+![Forking Repo](screenshots/1.png)  
+![Repo Forked](screenshots/2.png)  
 
 ---
 
-### 3️⃣ Add Basic Tests  
-- Created `tests/test_app.py` for simple Flask route testing  
+### 2. Create a Staging Branch  
+Create a new `staging` branch from `master`.  
 
-![Screenshot 5](screenshots/5.png)  
-![Screenshot 6](screenshots/6.png)  
-
----
-
-### 4️⃣ Create GitHub Actions Workflow  
-- Added `.github/workflows/ci-cd.yml` for build, test, and deployment pipeline  
-
-![Screenshot 7](screenshots/7.png)  
-![Screenshot 8](screenshots/8.png)  
+![Creating Branch](screenshots/3.png)  
+![Branch Created](screenshots/4.png)  
 
 ---
 
-### 5️⃣ Disable Actions Temporarily  
-- Disabled GitHub Actions initially to avoid failures before configuring secrets  
+### 3. Add Basic Tests  
+Added `tests/test_app.py` for simple Flask route verification.  
+
+![Adding Tests](screenshots/5.png)  
+![Tests Created](screenshots/6.png)  
 
 ---
 
-### 6️⃣ Launch AWS EC2 Instances  
-- **2 Ubuntu EC2 instances**:  
-  - One for **Staging**  
-  - One for **Production**  
+### 4. Create GitHub Actions Workflow  
+Created `.github/workflows/ci-cd.yml` to define build, test & deploy stages.  
 
-![Screenshot 9](screenshots/9.png)  
-
----
-
-### 7️⃣ Configure GitHub Secrets  
-Go to **Repo Settings → Secrets & Variables → Actions → New Repository Secret** and add:  
-- `SSH_KEY` → EC2 private key  
-- `STAGING_HOST`, `STAGING_USER`  
-- `PROD_HOST`, `PROD_USER`  
-
-![Screenshot 10](screenshots/10.png)  
+![Creating Workflow](screenshots/7.png)  
+![Workflow Created](screenshots/8.png)  
 
 ---
 
-### 8️⃣ Clone Repo Locally & Switch Branch  
-- Cloned repo locally  
-- Checked out `staging` branch  
-- Opened in VS Code  
-
-![Screenshot 11](screenshots/11.png)  
-![Screenshot 12](screenshots/12.png)  
+### 5. Disable Actions Temporarily  
+Paused Actions initially until secrets were configured.  
 
 ---
 
-### 9️⃣ Update Application for Environment Awareness  
-- Modified `app.py` to return **environment-specific messages**  
+### 6. Launch AWS EC2 Instances  
+Created **2 Ubuntu EC2 instances**: one for Staging, one for Production.  
 
-![Screenshot 13](screenshots/13.png)  
-
----
-
-### 🔟 Update Dockerfile  
-- Added `ENV APP_ENV` support  
-
-![Screenshot 14](screenshots/14.png)  
+![EC2 Instances Running](screenshots/9.png)  
 
 ---
 
-### 1️⃣1️⃣ Update CI/CD Workflow  
-- Updated `ci-cd.yml` to pass `-e APP_ENV` in `docker run`  
+### 7. Configure GitHub Secrets  
+In **Repo Settings → Secrets & Variables → Actions** added:  
 
-![Screenshot 15](screenshots/15.png)  
+| Secret          | Purpose                  |
+|-----------------|--------------------------|
+| `SSH_KEY`       | Private key for EC2 SSH  |
+| `STAGING_HOST`  | Staging EC2 Public IP    |
+| `STAGING_USER`  | SSH user for Staging     |
+| `PROD_HOST`     | Production EC2 Public IP |
+| `PROD_USER`     | SSH user for Production  |
 
----
-
-### 1️⃣2️⃣ Push Changes to Staging  
-- Added files, committed, and pushed to `staging` branch  
-- Triggered GitHub Actions Workflow  
-
-![Screenshot 16](screenshots/16.png)  
-![Screenshot 17](screenshots/17.png)  
-
----
-
-### 1️⃣3️⃣ First Workflow Run  
-- **Build & Test** passed  
-- **Deployment failed** → missing `sudo` for Docker commands  
-
-![Screenshot 18](screenshots/18.png)  
+![Configured Secrets](screenshots/10.png)  
 
 ---
 
-### 1️⃣4️⃣ Fix Deployment Issue  
-- Updated YAML to use `sudo` with Docker  
-- Committed changes → triggered another workflow  
-
-![Screenshot 19](screenshots/19.png)  
-
----
-
-### 1️⃣5️⃣ Successful Staging Deployment  
-- Flask app deployed successfully to staging server  
-- Accessible at:  
-  ```
-  http://<STAGING_INSTANCE_IP>:5000/how%20are%20you
-  ```
-  ✅ Shows: **Hello from Staging environment!**
-
-![Screenshot 20](screenshots/20.png)  
-![Screenshot 21](screenshots/21.png)  
-![Screenshot 22](screenshots/22.png)  
-
----
-
-### 1️⃣6️⃣ Deploy Production  
-
-1. Go to **GitHub → Releases → Draft a new release**  
-2. Select **target branch:** `master`  
-3. Enter **tag:** `v1.0.0`  
-4. Title: `Production Release v1.0.0`  
-5. Click **Publish Release**  
-
-![Screenshot 23](screenshots/23.png)  
-
-- Workflow triggered **deploy-production** job  
-- Initially failed due to wrong branch name (`main` instead of `master`)  
-- Fixed YAML and created a **new release**  
-
-✅ **Production Deployment Successful**
-
-![Screenshot 24](screenshots/24.png)  
-![Screenshot 25](screenshots/25.png)  
-
----
-
-### 1️⃣7️⃣ Verify Production  
-
-Visit:  
+### 8. Clone Repo Locally & Switch Branch  
+```bash
+git clone <repo_url>
+cd simple-webapp-flask
+git checkout staging
 ```
-http://<PRODUCTION_INSTANCE_IP>:5000/how%20are%20you
+Opened repo in VS Code for updates.  
+
+![Cloned Repo](screenshots/11.png)  
+![Checked Branch](screenshots/12.png)  
+
+---
+
+### 9. Update Application for Environment Awareness  
+Modified `app.py` to return messages based on `APP_ENV` (Staging/Production).  
+
+![Updated app.py](screenshots/13.png)  
+
+---
+
+### 10. Update Dockerfile  
+Added `ENV APP_ENV` with default Staging.  
+
+![Updated Dockerfile](screenshots/14.png)  
+
+---
+
+### 11. Update CI/CD Workflow  
+Modified `ci-cd.yml` → added `-e APP_ENV` in docker run.  
+
+![Updated Workflow](screenshots/15.png)  
+
+---
+
+### 12. Push Changes to Staging  
+```bash
+git add .
+git commit -m "Environment-aware app + Dockerfile update"
+git push origin staging
 ```
+Triggered **Staging Workflow**.  
 
-✅ Shows: **Hello from Production environment!**  
+![Push Changes](screenshots/16.png)  
+![Workflow Triggered](screenshots/17.png)  
 
-![Screenshot 26](screenshots/26.png)  
+---
+
+### 13. First Workflow Run  
+✅ Build + Test Passed  
+❌ Deployment failed (docker permission issue).  
+
+![Failed Deployment](screenshots/18.png)  
+
+---
+
+### 14. Fix Deployment Issue  
+Added `sudo` for docker commands → pushed → retriggered workflow.  
+
+![Fixed Issue](screenshots/19.png)  
+
+---
+
+### 15. Successful Staging Deployment  
+Deployed Flask container to staging:  
+
+```
+http://<STAGING_IP>:5000/how%20are%20you
+✅ Shows: Hello from Staging environment!
+```  
+
+![Staging Success 1](screenshots/20.png)  
+![Staging Success 2](screenshots/21.png)  
+![Staging Success 3](screenshots/22.png)  
+
+---
+
+### 16. Deploy Production  
+1. **GitHub → Releases → Draft new release**  
+2. Select `master` branch → Tag `v1.0.0`  
+3. Publish Release → triggers **Production Workflow**  
+4. Fixed branch name (main → master) → retriggered → SUCCESS  
+
+![Draft Release](screenshots/23.png)  
+![Prod Workflow](screenshots/24.png)  
+![Prod Success](screenshots/25.png)  
+
+---
+
+### 17. Verify Production  
+```
+http://<PRODUCTION_IP>:5000/how%20are%20you
+✅ Shows: Hello from Production environment!
+```  
+
+![Production Verified](screenshots/26.png)
 
 ---
 
 ## 🔑 Secrets Required  
 
-| Secret Name     | Description |
+| Secret          | Description |
 |-----------------|-------------|
 | `SSH_KEY`       | Private SSH key for EC2 |
 | `STAGING_HOST`  | Staging EC2 Public IP |
-| `STAGING_USER`  | SSH User for Staging EC2 |
+| `STAGING_USER`  | SSH User for Staging |
 | `PROD_HOST`     | Production EC2 Public IP |
-| `PROD_USER`     | SSH User for Production EC2 |
+| `PROD_USER`     | SSH User for Production |
 
 ---
 
@@ -200,20 +248,20 @@ http://<PRODUCTION_INSTANCE_IP>:5000/how%20are%20you
 
 ## ✅ Final Status  
 
-- Staging URL: ✅ Working  
-- Production URL: ✅ Working  
-- CI/CD Workflow: ✅ Automated & Tested  
+✅ **Staging Deployment → Working**  
+✅ **Production Deployment → Working**  
+✅ **Automated Tests → Passing**  
+✅ **CI/CD Workflow → Fully Functional**  
 
 ---
 
-### 📜 Summary  
+## 📜 Summary  
 
-This CI/CD setup provides:  
-✔ Automated build & test on each push  
-✔ Seamless deployment to Staging & Production  
-✔ Environment-specific Dockerized Flask app  
+This CI/CD setup ensures:  
+
+✔ Automated testing & validation  
+✔ Seamless deployment to staging & production  
+✔ Reproducible environment with Docker  
+✔ Secure deployment using GitHub Secrets  
 
 ---
-
-**Author:** *Your Name*  
-**Repo:** [simple-webapp-flask](#)
