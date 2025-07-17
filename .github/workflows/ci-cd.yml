@@ -76,6 +76,7 @@ jobs:
           git reset --hard origin/staging
 
           echo "✅ Stopping old container (if exists)"
+
           sudo docker stop simple-webapp-flask || true
           sudo docker rm simple-webapp-flask || true
 
@@ -122,7 +123,7 @@ jobs:
 
           cd simple-webapp-flask
           git fetch --all
-          git reset --hard origin/main
+          git reset --hard origin/master
 
           echo "✅ Stopping old container (if exists)"
           sudo docker stop simple-webapp-flask || true
