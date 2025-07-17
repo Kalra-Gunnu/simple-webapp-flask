@@ -8,7 +8,8 @@ def main():
 
 @app.route('/how are you')
 def hello():
-    return 'I am good, how about you?'
+    env = os.getenv("APP_ENV", "Unknown")
+    return f"<h1>Hello from {env} environment!</h1>"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
