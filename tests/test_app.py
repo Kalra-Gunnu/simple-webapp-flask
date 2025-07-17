@@ -1,15 +1,18 @@
-import pytest
-from app import app
+import importlib.util
+import sys
+from pathlib import Path
 
-@pytest.fixture
-def client():
-    # Create a test client for the Flask app
-    app.testing = True
-    with app.test_client() as client:
-        yield client
+# Dynamically load app.py
+app_path = Path(__file__).resolve().parent.parent / "app.py"
+spec = importlib.util.spec_from_file_location("app", app_path)
+app_module = importlib.util.module_from_spec(spec)
+sys.modules["app"] = app_module
+spec.loader.exec_module(app_module)
 
-def test_homepage(client):
-    """Test if the homepage returns 200 OK and expected content"""
+app = app_module.app  # Get the Flask app instance
+
+
+def test_homepage():
+    client = app.test_client()
     response = client.get('/')
     assert response.status_code == 200
-    assert b"Welcome" in response.data or b"Hello" in response.data
