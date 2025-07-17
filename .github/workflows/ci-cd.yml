@@ -13,28 +13,23 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
-      # Checkout repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      # Install dependencies for testing
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
 
-      # Run tests (this will pick up tests/test_app.py)
       - name: Run tests
         run: pytest -v
 
-      # Build Docker image if tests pass
       - name: Build Docker image
         if: success()
         run: |
@@ -51,19 +46,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to Staging Server
+      - name: SSH & Deploy to Staging Server
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           STAGING_USER: ${{ secrets.STAGING_USER }}
         run: |
           echo "$SSH_KEY" > ssh_key && chmod 600 ssh_key
+
           ssh -o StrictHostKeyChecking=no -i ssh_key $STAGING_USER@$STAGING_HOST << 'EOF'
+          set -e
+
+          echo "✅ Bootstrapping server if needed..."
+          # Install Docker if missing
+          if ! command -v docker &> /dev/null; then
+            echo "Installing Docker..."
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io git
+            sudo usermod -aG docker $USER || true
+          fi
+
+          # Clone repo if not present
+          if [ ! -d "simple-webapp-flask" ]; then
+            git clone https://github.com/Kalra-Gunnu/simple-webapp-flask.git
+          fi
+
+          cd simple-webapp-flask
+          git fetch --all
+          git reset --hard origin/staging
+
+          echo "✅ Stopping old container (if exists)"
           docker stop simple-webapp-flask || true
           docker rm simple-webapp-flask || true
-          cd /home/$STAGING_USER/simple-webapp-flask
-          git pull origin staging
+
+          echo "✅ Building Docker image..."
           docker build -t simple-webapp-flask .
+
+          echo "✅ Running new container..."
           docker run -d --name simple-webapp-flask -p 5000:5000 simple-webapp-flask
           EOF
 
@@ -76,18 +95,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to Production Server
+      - name: SSH & Deploy to Production Server
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
           PROD_HOST: ${{ secrets.PROD_HOST }}
           PROD_USER: ${{ secrets.PROD_USER }}
         run: |
           echo "$SSH_KEY" > ssh_key && chmod 600 ssh_key
+
           ssh -o StrictHostKeyChecking=no -i ssh_key $PROD_USER@$PROD_HOST << 'EOF'
+          set -e
+
+          echo "✅ Bootstrapping server if needed..."
+          # Install Docker if missing
+          if ! command -v docker &> /dev/null; then
+            echo "Installing Docker..."
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io git
+            sudo usermod -aG docker $USER || true
+          fi
+
+          # Clone repo if not present
+          if [ ! -d "simple-webapp-flask" ]; then
+            git clone https://github.com/Kalra-Gunnu/simple-webapp-flask.git
+          fi
+
+          cd simple-webapp-flask
+          git fetch --all
+          git reset --hard origin/main
+
+          echo "✅ Stopping old container (if exists)"
           docker stop simple-webapp-flask || true
           docker rm simple-webapp-flask || true
-          cd /home/$PROD_USER/simple-webapp-flask
-          git pull origin main
+
+          echo "✅ Building Docker image..."
           docker build -t simple-webapp-flask .
+
+          echo "✅ Running new container..."
           docker run -d --name simple-webapp-flask -p 5000:5000 simple-webapp-flask
           EOF
